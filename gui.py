@@ -1,13 +1,7 @@
-"""
-ADFGVX Cipher GUI - grafické rozhranie pre ADFGVX šifru
-Štýl prevzatý z Playfair Cipher projektu
-"""
-
 import tkinter as tk
 from tkinter import messagebox, ttk
-import random
 
-# Oprava DPI scalingu na Windows pre ostrejšie zobrazenie
+# Oprava DPI scalingu na Windows
 try:
     from ctypes import windll
 
@@ -25,7 +19,7 @@ from adfgvxcipher import (
     decrypt,
     format_five,
     generate_random_alphabet,
-    get_remaining_chars,
+    remove_diacritics,
     ALPHABET_CZECH_25,
     ALPHABET_ENGLISH_25,
     ALPHABET_36,
@@ -33,7 +27,6 @@ from adfgvxcipher import (
     ADFGVX_INDICES,
 )
 
-# Farby a fonty pre tmavú tému (zelená schéma z Playfair)
 DARK_BG = "#222026"
 LIGHT_TXT = "#08AC2C"
 DARK_ENTRY = "#222026"
@@ -47,16 +40,13 @@ BUTTON_FONT = ("Consolas", 12, "bold")
 
 class AdfgvxCipherGUI:
     def __init__(self, root):
-        """Inicializácia hlavného okna a nastavenie premenných"""
         self.root = root
         self.root.title("ADFGVX Cipher")
-        self.root.geometry("850x700")
+        self.root.geometry("750x620")
         self.root.resizable(False, False)
         self.root.configure(bg=DARK_BG)
 
-        # Premenné pre stav aplikácie
         self.cipher_var = tk.StringVar(value="ADFGX_CZECH")
-        self.matrix_mode_var = tk.StringVar(value="RANDOM")
         self.current_alphabet = ALPHABET_CZECH_25
         self.current_indices = ADFGX_INDICES
         self.matrix_size = 5
@@ -66,7 +56,7 @@ class AdfgvxCipherGUI:
         self.generate_new_matrix()
 
     def setup_ui(self):
-        """Vytvorí hlavný frame a rozdelí na ľavý a pravý panel"""
+        # Lavy pravy panel
         main_frame = tk.Frame(self.root, bg=DARK_BG)
         main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
 
@@ -74,11 +64,9 @@ class AdfgvxCipherGUI:
         self.setup_right_panel(main_frame)
 
     def setup_left_panel(self, parent):
-        """Ľavý panel: vstup, výstupy, tlačidlá"""
         left_frame = tk.Frame(parent, bg=DARK_BG)
         left_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(5, 10))
 
-        # INPUT - vstupný text
         tk.Label(
             left_frame, text="INPUT", bg=DARK_BG, fg=LIGHT_TXT, font=LABEL_FONT
         ).pack(anchor=tk.W, pady=(0, 5))
@@ -98,7 +86,6 @@ class AdfgvxCipherGUI:
         )
         self.input_text.pack(fill=tk.BOTH, expand=False, padx=(3, 0), pady=(0, 10))
 
-        # Filtered Text - filtrovaný text
         tk.Label(
             left_frame,
             text="Filtered Text",
@@ -122,10 +109,9 @@ class AdfgvxCipherGUI:
         )
         self.filtered_text.pack(fill=tk.BOTH, expand=False, padx=(3, 0), pady=(0, 10))
 
-        # Substituted Text - text po substitúcii (fáza 1)
         tk.Label(
             left_frame,
-            text="Substituted Text (Phase 1)",
+            text="Substituted Text",
             bg=DARK_BG,
             fg=LIGHT_TXT,
             font=LABEL_FONT,
@@ -148,10 +134,9 @@ class AdfgvxCipherGUI:
             fill=tk.BOTH, expand=False, padx=(3, 0), pady=(0, 10)
         )
 
-        # Column Display - zobrazenie stĺpcov (fáza 2)
         tk.Label(
             left_frame,
-            text="Columns (sorted by keyword)",
+            text="Columns",
             bg=DARK_BG,
             fg=LIGHT_TXT,
             font=LABEL_FONT,
@@ -172,7 +157,6 @@ class AdfgvxCipherGUI:
         )
         self.columns_text.pack(fill=tk.BOTH, expand=False, padx=(3, 0), pady=(0, 10))
 
-        # OUTPUT - finálny výstup
         tk.Label(
             left_frame,
             text="OUTPUT",
@@ -199,7 +183,6 @@ class AdfgvxCipherGUI:
         self.setup_buttons(left_frame)
 
     def setup_buttons(self, parent):
-        """Vytvorí tlačidlá ENCRYPT a DECRYPT"""
         style = ttk.Style()
         style.theme_use("default")
         style.configure(
@@ -239,26 +222,20 @@ class AdfgvxCipherGUI:
         self.decrypt_btn.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(5, 0))
 
     def setup_right_panel(self, parent):
-        """Pravý panel: výber šifry, matica, keyword"""
         right_frame = tk.Frame(parent, bg=DARK_BG, width=450)
         right_frame.pack(side=tk.RIGHT, fill=tk.BOTH, padx=(10, 10))
         right_frame.pack_propagate(False)
 
-        # Výber typu šifry
         tk.Label(
             right_frame, text="Cipher Type", bg=DARK_BG, fg=LIGHT_TXT, font=LABEL_FONT
         ).pack(anchor=tk.W)
 
         self.setup_cipher_selection(right_frame)
 
-        # Výber režimu matice (Random/Manual)
         tk.Label(
             right_frame, text="Matrix Input", bg=DARK_BG, fg=LIGHT_TXT, font=LABEL_FONT
         ).pack(anchor=tk.W, pady=(15, 5))
 
-        self.setup_matrix_mode_selection(right_frame)
-
-        # Manuálne zadanie matice
         matrix_input_frame = tk.Frame(right_frame, bg=DARK_BG)
         matrix_input_frame.pack(anchor=tk.W, pady=(5, 5))
 
@@ -277,7 +254,7 @@ class AdfgvxCipherGUI:
         self.matrix_entry.pack(side=tk.LEFT, padx=(3, 5))
         self.matrix_entry.bind("<KeyRelease>", self.on_matrix_input_change)
 
-        # Tlačidlo na generovanie náhodnej matice
+        # Button na generovanie random matice
         self.generate_btn = ttk.Button(
             matrix_input_frame,
             text="⟳",
@@ -288,24 +265,14 @@ class AdfgvxCipherGUI:
         )
         self.generate_btn.pack(side=tk.LEFT)
 
-        # Zostávajúce znaky
-        self.remaining_label = tk.Label(
-            right_frame,
-            text="",
-            bg=DARK_BG,
-            fg=LIGHT_TXT,
-            font=("Consolas", 9),
-        )
-        self.remaining_label.pack(anchor=tk.W, pady=(0, 15))
-
         # Keyword pole
         self.setup_keyword_entry(right_frame)
 
         # Zobrazenie matice
         self.setup_matrix(right_frame)
 
+    # Radio buttons
     def setup_cipher_selection(self, parent):
-        """Radio buttony pre výber typu šifry (ADFGX CZ/EN, ADFGVX)"""
         radio_frame = tk.Frame(parent, bg=DARK_BG)
         radio_frame.pack(anchor=tk.W, pady=(5, 5))
 
@@ -351,41 +318,7 @@ class AdfgvxCipherGUI:
             activeforeground=LIGHT_TXT,
         ).pack(side=tk.LEFT, padx=(15, 0))
 
-    def setup_matrix_mode_selection(self, parent):
-        """Radio buttony pre výber režimu matice (Random/Manual)"""
-        radio_frame = tk.Frame(parent, bg=DARK_BG)
-        radio_frame.pack(anchor=tk.W, pady=(0, 5))
-
-        tk.Radiobutton(
-            radio_frame,
-            text="Random",
-            variable=self.matrix_mode_var,
-            value="RANDOM",
-            bg=DARK_BG,
-            fg=LIGHT_TXT,
-            selectcolor=BUTTON_BG,
-            font=("Consolas", 10),
-            command=self.change_matrix_mode,
-            activebackground=DARK_BG,
-            activeforeground=LIGHT_TXT,
-        ).pack(side=tk.LEFT, padx=(0, 25))
-
-        tk.Radiobutton(
-            radio_frame,
-            text="Manual",
-            variable=self.matrix_mode_var,
-            value="MANUAL",
-            bg=DARK_BG,
-            fg=LIGHT_TXT,
-            selectcolor=BUTTON_BG,
-            font=("Consolas", 10),
-            command=self.change_matrix_mode,
-            activebackground=DARK_BG,
-            activeforeground=LIGHT_TXT,
-        ).pack(side=tk.LEFT)
-
     def setup_keyword_entry(self, parent):
-        """Pole pre zadanie keyword (kľúčové slovo)"""
         tk.Label(
             parent, text="Keyword", bg=DARK_BG, fg=LIGHT_TXT, font=LABEL_FONT
         ).pack(anchor=tk.W, pady=(0, 5))
@@ -401,18 +334,35 @@ class AdfgvxCipherGUI:
             highlightbackground=LIGHT_TXT,
             highlightcolor=LIGHT_TXT,
         )
-        self.keyword_entry.pack(anchor=tk.W, padx=(3, 0), pady=(0, 15))
+        self.keyword_entry.pack(anchor=tk.W, padx=(3, 0), pady=(0, 10))
+        self.keyword_entry.bind("<KeyRelease>", self.on_keyword_change)
+
+        tk.Label(
+            parent, text="Filtered Keyword", bg=DARK_BG, fg=LIGHT_TXT, font=LABEL_FONT
+        ).pack(anchor=tk.W, pady=(0, 5))
+        self.filtered_keyword_entry = tk.Entry(
+            parent,
+            bg=DARK_ENTRY,
+            fg=LIGHT_TXT,
+            insertbackground=LIGHT_TXT,
+            font=FONT,
+            width=30,
+            relief=tk.FLAT,
+            highlightthickness=1,
+            highlightbackground=LIGHT_TXT,
+            highlightcolor=LIGHT_TXT,
+        )
+        self.filtered_keyword_entry.pack(anchor=tk.W, padx=(3, 0), pady=(0, 15))
+        self.filtered_keyword_entry.bind("<Key>", lambda e: "break")
 
     def setup_matrix(self, parent):
-        """Vytvorí zobrazenie matice s indexami (A,D,F,G,X alebo A,D,F,G,V,X)"""
         tk.Label(parent, text="Matrix", bg=DARK_BG, fg=LIGHT_TXT, font=LABEL_FONT).pack(
             anchor=tk.W, pady=(0, 5)
         )
 
         matrix_container = tk.Frame(parent, bg=DARK_BG)
-        matrix_container.pack(pady=(0, 15))
+        matrix_container.pack(pady=(0, 15), anchor=tk.W)
 
-        # Hlavička (prázdne miesto v ľavom hornom rohu)
         tk.Label(
             matrix_container,
             text="  ",
@@ -422,7 +372,6 @@ class AdfgvxCipherGUI:
             width=3,
         ).grid(row=0, column=0)
 
-        # Hlavičky stĺpcov (A, D, F, G, X alebo A, D, F, G, V, X)
         self.col_headers = []
         for j in range(6):
             lbl = tk.Label(
@@ -436,12 +385,10 @@ class AdfgvxCipherGUI:
             lbl.grid(row=0, column=j + 1)
             self.col_headers.append(lbl)
 
-        # Bunky matice
         self.matrix_labels = []
         self.row_headers = []
 
         for i in range(6):
-            # Hlavička riadku
             row_lbl = tk.Label(
                 matrix_container,
                 text="",
@@ -472,7 +419,6 @@ class AdfgvxCipherGUI:
         self.update_matrix_size()
 
     def change_cipher_type(self):
-        """Zmení typ šifry a aktualizuje abecedu, indexy a veľkosť matice"""
         choice = self.cipher_var.get()
 
         if choice == "ADFGX_CZECH":
@@ -489,52 +435,43 @@ class AdfgvxCipherGUI:
             self.matrix_size = 6
 
         self.update_matrix_size()
-        if self.matrix_mode_var.get() == "RANDOM":
-            self.generate_new_matrix()
-        else:
-            self.matrix_entry.delete(0, tk.END)
-            self.update_remaining_chars()
-
-    def change_matrix_mode(self):
-        """Prepne medzi Random a Manual režimom matice"""
-        mode = self.matrix_mode_var.get()
-        if mode == "RANDOM":
-            self.matrix_entry.config(state=tk.DISABLED)
-            self.generate_btn.config(state=tk.NORMAL)
-            self.generate_new_matrix()
-        else:
-            self.matrix_entry.config(state=tk.NORMAL)
-            self.generate_btn.config(state=tk.DISABLED)
-            self.matrix_entry.delete(0, tk.END)
-            self.update_remaining_chars()
+        self.generate_new_matrix()
 
     def generate_new_matrix(self):
-        """Vygeneruje novú náhodnú maticu"""
         self.current_matrix_str = generate_random_alphabet(self.current_alphabet)
         self.matrix_entry.delete(0, tk.END)
         self.matrix_entry.insert(0, self.current_matrix_str)
         self.update_matrix_display()
-        self.update_remaining_chars()
 
     def on_matrix_input_change(self, event=None):
-        """Spracuje zmeny v manuálnom zadaní matice"""
         self.current_matrix_str = self.matrix_entry.get().upper()
         self.matrix_entry.delete(0, tk.END)
         self.matrix_entry.insert(0, self.current_matrix_str)
         self.update_matrix_display()
-        self.update_remaining_chars()
 
-    def update_remaining_chars(self):
-        """Aktualizuje zobrazenie zostávajúcich znakov pre maticu"""
-        matrix_input = self.matrix_entry.get().upper()
-        remaining = get_remaining_chars(matrix_input, self.current_alphabet)
-        self.remaining_label.config(
-            text=f"Remaining ({len(remaining)}): {remaining[:40]}{'...' if len(remaining) > 40 else ''}"
-        )
+    def on_keyword_change(self, event=None):
+        keyword = self.keyword_entry.get().upper()
+
+        # Diakritika
+        keyword = remove_diacritics(keyword)
+
+        # Duplicitne znaky a neplatne
+        seen = set()
+        filtered = []
+        for char in keyword:
+            if char.isalpha() and char not in seen:
+                seen.add(char)
+                filtered.append(char)
+
+        filtered_keyword = "".join(filtered)
+
+        # Aktualizuj Entry pole
+        self.filtered_keyword_entry.config(state=tk.NORMAL)
+        self.filtered_keyword_entry.delete(0, tk.END)
+        self.filtered_keyword_entry.insert(0, filtered_keyword)
+        self.filtered_keyword_entry.config(state="readonly")
 
     def update_matrix_size(self):
-        """Aktualizuje veľkosť matice (5×5 alebo 6×6) a indexy"""
-        # Aktualizuj hlavičky stĺpcov
         for j in range(6):
             if j < self.matrix_size:
                 self.col_headers[j].config(text=self.current_indices[j])
@@ -542,7 +479,6 @@ class AdfgvxCipherGUI:
             else:
                 self.col_headers[j].grid_remove()
 
-        # Aktualizuj hlavičky riadkov a bunky
         for i in range(6):
             if i < self.matrix_size:
                 self.row_headers[i].config(text=self.current_indices[i])
@@ -557,11 +493,8 @@ class AdfgvxCipherGUI:
                     self.matrix_labels[i][j].grid_remove()
 
     def update_matrix_display(self):
-        """Aktualizuje zobrazenie matice"""
         matrix_str = self.current_matrix_str
-        expected_len = self.matrix_size * self.matrix_size
 
-        # Aktualizuj bunky matice
         for i in range(self.matrix_size):
             for j in range(self.matrix_size):
                 idx = i * self.matrix_size + j
@@ -571,21 +504,16 @@ class AdfgvxCipherGUI:
                     self.matrix_labels[i][j].config(text="?")
 
     def set_text(self, widget, text):
-        """Bezpečne nastaví text do Text widgetu"""
         widget.config(state=tk.NORMAL)
         widget.delete(1.0, tk.END)
         widget.insert(1.0, text)
         widget.config(state=tk.DISABLED)
 
     def do_encrypt(self):
-        """Spracuje šifrovanie textu"""
         try:
             plaintext = self.input_text.get(1.0, tk.END).strip()
             keyword = self.keyword_entry.get().strip()
             matrix_str = self.matrix_entry.get().strip().upper()
-
-            # ✅ Ulož maticu do premennej (aby sa nezmenila)
-            self.last_used_matrix = matrix_str
 
             if not keyword:
                 messagebox.showwarning("Error", "Please enter a keyword!")
@@ -604,14 +532,15 @@ class AdfgvxCipherGUI:
                 plaintext, matrix_str, keyword, cipher_type
             )
 
-            # Zobraz filtered text bez medzier (ako Java)
             filtered_display = filtered.replace(" ", "")
             self.set_text(self.filtered_text, filtered_display)
 
             self.set_text(self.substituted_text, format_five(substituted))
-            self.set_text(self.columns_text, "\n".join(column_display[:5]))
 
-            # Odstráň medzery z output pre ľahšie kopírovanie
+            # Zobraz vsetky stlpce
+            self.set_text(self.columns_text, "\n".join(column_display))
+
+            # Odstran medzery z output
             ciphertext_clean = ciphertext.replace(" ", "")
             self.set_text(self.output_text, format_five(ciphertext_clean))
 
@@ -619,7 +548,6 @@ class AdfgvxCipherGUI:
             messagebox.showerror("Encryption Error", str(e))
 
     def do_decrypt(self):
-        """Spracuje dešifrovanie textu"""
         try:
             ciphertext = self.input_text.get(1.0, tk.END).strip()
             keyword = self.keyword_entry.get().strip()
