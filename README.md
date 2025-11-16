@@ -32,7 +32,8 @@ python main.py
 adfgvx_cipher/
 ├── pycache/
 ├── assets/
-│ └── ui_screenshot .png
+│ └── ui_screenshot.png
+├── adfgvxcipher.py
 ├── gui.py
 ├── LICENSE
 ├── main.py
