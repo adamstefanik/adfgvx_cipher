@@ -14,7 +14,7 @@ except:
     except:
         pass
 
-from adfgvxcipher import (
+from adfgvx_cipher import (
     encrypt,
     decrypt,
     format_five,

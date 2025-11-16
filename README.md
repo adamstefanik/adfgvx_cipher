@@ -18,7 +18,7 @@ The project features an easy-to-use graphical user interface built with Tkinter
 ## How to Run
 ```bash
 git clone https://github.com/adamstefanik/playfair_cipher.git
-cd playfair_cipher
+cd adfgvx_cipher
 ```
 2. Start the main file
 ```
@@ -33,7 +33,7 @@ adfgvx_cipher/
 ├── pycache/
 ├── assets/
 │ └── ui_screenshot.png
-├── adfgvxcipher.py
+├── adfgvx_cipher.py
 ├── gui.py
 ├── LICENSE
 ├── main.py
